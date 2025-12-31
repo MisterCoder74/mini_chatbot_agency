@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatBot Hub</title>
+    <style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f5f5f5;
+}
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.header {
+  background: #04be6d;
+  color: white;
+  padding: 1rem;
+  margin-bottom: 2rem;
+  border-radius: 8px;
+}
+.nav {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.btn {
+  background: #000000;
+  color: #04be6d;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn:hover {
+  background: #04be6d;
+  color: white;
+  border: 1px solid black;
+}
+.btn.secondary {
+  background: white;
+  border: 1px solid transparent;
+}
+.btn.secondary:hover {
+  color: black;
+  border: 1px solid black;
+}
+.btn.danger {
+  background: #dc2626;
+  color: white;   
+  border: 1px solid transparent;        
+}
+.btn.danger:hover {
+  color: black;
+  border: 1px solid black;
+}            
+.card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+}
+.form-group {
+  margin: 1rem 0;
+}
+.form-group label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+}
+.hidden {
+  display: none;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+.chat-container {
+  height: 400px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  overflow-y: auto;
+  padding: 1rem;
+  background: #fafafa;
+}
+.message {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+.message.user {
+  background: #dbeafe;
+  margin-left: 2rem;
+}
+.message.bot {
+  background: #f3f4f6;
+  margin-right: 2rem;
+}
+.usage-bar {
+  background: #e5e7eb;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 0.5rem 0;
+}
+.usage-fill {
+  background: #3b82f6;
+  height: 100%;
+  transition: width 0.3s;
+}
+.plan-card {
+  border: 2px solid transparent;
+  transition: all 0.3s;
+}
+.plan-card.premium {
+  border-color: #f59e0b;
+}
+.plan-card.basic {
+  border-color: #10b981;
+}
+.alert {
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+.alert.error {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.alert.success {
+  background: #d1fae5;
+  color: #059669;
+}
+.image-preview {
+  max-width: 200px;
+  margin: 0.5rem 0;
+  border-radius: 4px;
+}
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+.reglink {
+	color: #04be6d;
+	text-decoration: none;
+}           
+.reglink:hover {
+	color: #000000;
+	
+}  
+            
+.small-text {
+font-size: .75rem;
+color: rebeccapurple;        
+            }            
+            
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>ChatBot Hub</h1>
+            <div id="user-info" class="hidden">
+                <span id="welcome-text"></span>
+                <div class="nav">
+                    <a href="#" class="btn" onclick="showDashboard()">Dashboard</a>
+                    <a href="#" class="btn" onclick="showSettings()">Configurazione</a>    
+                    <a href="#" class="btn" onclick="showChatbots()">I Miei Bot</a>
+                    <a href="#" class="btn secondary" onclick="logout()">Logout</a>
+                </div>
+            </div>
+            <div id="guest-nav">
+                <div class="nav">
+                    <a href="#" class="btn" onclick="showLogin()">Accedi</a>
+                    <a href="#" class="btn secondary" onclick="showRegister()">Registrati</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Form -->
+        <div id="login-section" class="card">
+            <h2>Accedi</h2>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="login-email" required>
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="login-password" required>
+            </div>
+            <button class="btn" onclick="login()">Accedi</button>
+            <a href="#" onclick="showRegister()" class="reglink">Non hai un account?</a>
+        </div>
+
+        <!-- Register Form -->
+        <div id="register-section" class="card hidden">
+            <h2>Registrazione</h2>
+            <div class="form-group">
+                <label>Nome:</label>
+                <input type="text" id="reg-name" required>
+            </div>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="reg-email" required>
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="reg-password" required>
+            </div>
+            <button class="btn" onclick="register()">Registrati</button>
+            <a href="#" onclick="showLogin()" class="reglink">Hai già un account?</a>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard-section" class="hidden">
+            <div class="grid">
+                <!-- Account Info -->
+                <div class="card">
+                    <h3>Il Tuo Account</h3>
+                    <div id="account-info"></div>
+                    <div id="usage-stats"></div>
+                </div>
+
+                <!-- Plans -->
+                <div class="card">
+                    <h3>Piani Disponibili</h3>
+                    <div class="grid">
+                        <div class="plan-card card">
+                            <h4>Free</h4>
+                            <p>100 messaggi/mese<br>3 immagini/giorno<br>memoria di contesto (20 messaggi)<br>salvataggio chats</p>    
+                            <p><strong>Gratis</strong></p>
+                        </div>
+                        <div class="plan-card card basic">
+                            <h4>Basic</h4>
+                            <p>5000 messaggi/mese<br>10 immagini/giorno<br>memoria di contesto (50 messaggi)<br>salvataggio chats</p>
+                            <p><strong>€9.99/mese</strong></p>
+                            <button class="btn" onclick="upgradePlan('basic')">Upgrade</button>
+                        </div>
+                        <div class="plan-card card premium">
+                            <h4>Premium</h4>
+                            <p>Messaggi illimitati<br>Immagini illimitate<br>memoria di contesto (100 messaggi)<br>esportazione memoria<br>salvataggio chats</p>
+                            <p><strong>€19.99/mese</strong></p>
+                            <button class="btn" onclick="upgradePlan('premium')">Upgrade</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ChatBots Section -->
+        <div id="chatbots-section" class="hidden">
+            <div class="card">
+                <h3>I Miei ChatBot</h3>
+                <button class="btn" onclick="showCreateBot()">Crea Nuovo Bot</button>
+                <div id="bots-list"></div>
+            </div>
+
+            <!-- Create Bot Form -->
+            <div id="create-bot-form" class="card hidden">
+                <h3>Crea Nuovo ChatBot</h3>
+                <div class="form-group">
+                    <label>Nome Bot:</label>
+                    <input type="text" id="bot-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Personalità/Ruolo:</label>
+                    <textarea id="bot-personality" placeholder="Es: Sei un assistente esperto in cucina italiana..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Modello:</label>
+                    <select id="bot-model">
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                        <option value="gpt-4.1-nano">GPT-4.1-nano</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="createBot()">Crea Bot</button>
+                <button class="btn secondary" onclick="hideCreateBot()">Annulla</button>
+            </div>
+
+            <!-- Chat Interface -->
+            <div id="chat-interface" class="card hidden">
+                <h3 id="chat-bot-name"></h3>
+                <div id="chat-messages" class="chat-container"></div>
+                <div class="form-group">
+                    <input type="text" id="chat-input" placeholder="Scrivi un messaggio..." onkeypress="handleChatKeypress(event)">
+                </div>
+                <div class="form-group">
+                    <button class="btn" onclick="sendMessage()">Invia</button>
+                    <button class="btn secondary" onclick="generateImage()">Genera Immagine</button>
+                    <button class="btn secondary" onclick="closeChatInterface()">Chiudi</button>
+                </div>
+                <div class="usage-info">
+                        <p id="msg-remaining" class="small-text"></p>
+                        <p id="img-remaining" class="small-text"></p>
+                        <p id="history-warning" class="small-text"></p>
+                </div>    
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div id="settings-section" class="card hidden">
+            <h3>Impostazioni API</h3>
+            <div class="form-group">
+                <label>OpenAI API Key:</label>
+                <input type="password" id="openai-key" placeholder="sk-...">
+            </div>
+            <button class="btn" onclick="saveSettings()">Salva</button>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentUser = null;
+        let currentBot = null;
+        let chatHistory = [];
+        
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+        });
+
+        // API helper function
+        async function apiCall(action, data = {}) {
+            try {
+                const response = await fetch('api.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ action, ...data })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                showAlert('Errore di connessione al server', 'error');
+                throw error;
+            }
+        }
+
+        // Authentication functions
+        async function checkAuth() {
+            try {
+                const result = await apiCall('checkAuth');
+                if (result.success && result.user) {
+                    currentUser = result.user;
+                    showUserInterface();
+                } else {
+                    showGuestInterface();
+                }
+            } catch (error) {
+                showGuestInterface();
+            }
+        }
+
+        function showUserInterface() {
+            document.getElementById('user-info').classList.remove('hidden');
+            document.getElementById('guest-nav').classList.add('hidden');
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('register-section').classList.add('hidden');
+            document.getElementById('welcome-text').textContent = `Benvenuto, ${currentUser.name} (${currentUser.plan})`;
+            showDashboard();
+        }
+
+        function showGuestInterface() {
+            document.getElementById('user-info').classList.add('hidden');
+            document.getElementById('guest-nav').classList.remove('hidden');
+            hideAllSections();
+            document.getElementById('login-section').classList.remove('hidden');
+        }
+
+        async function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (!email || !password) {
+                showAlert('Compila tutti i campi', 'error');
+                return;
+            }
+            
+            try {
+                const result = await apiCall('login', { email, password });
+                
+                if (result.success) {
+                    currentUser = result.user;
+                    showUserInterface();
+                    showAlert('Login effettuato con successo!', 'success');
+                } else {
+                    showAlert(result.message || 'Credenziali non valide', 'error');
+                }
+            } catch (error) {
+                showAlert('Errore durante il login', 'error');
+            }
+        }
+
+        async function register() {
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            
+            if (!name || !email || !password) {
+                showAlert('Compila tutti i campi', 'error');
+                return;
+            }
+            
+            try {
+                const result = await apiCall('register', { name, email, password });
+                
+                if (result.success) {
+                    showAlert('Registrazione completata! Effettua il login.', 'success');
+                    showLogin();
+                    // Clear form
+                    document.getElementById('reg-name').value = '';
+                    document.getElementById('reg-email').value = '';
+                    document.getElementById('reg-password').value = '';
+                } else {
+                    showAlert(result.message || 'Errore durante la registrazione', 'error');
+                }
+            } catch (error) {
+                showAlert('Errore durante la registrazione', 'error');
+            }
+        }
+
+        async function logout() {
+            try {
+                await apiCall('logout');
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+            
+            currentUser = null;
+            showGuestInterface();
+        }
+
+        // Navigation functions
+        function showLogin() {
+            hideAllSections();
+            document.getElementById('login-section').classList.remove('hidden');
+        }
+
+        function showRegister() {
+            hideAllSections();
+            document.getElementById('register-section').classList.remove('hidden');
+        }
+
+        function showDashboard() {
+            hideAllSections();
+            document.getElementById('dashboard-section').classList.remove('hidden');
+            updateAccountInfo();
+        }
+
+        function showChatbots() {
+            hideAllSections();
+            document.getElementById('chatbots-section').classList.remove('hidden');
+            loadBots();
+        }
+
+        function hideAllSections() {
+            const sections = ['login-section', 'register-section', 'dashboard-section', 'chatbots-section', 'settings-section'];
+            sections.forEach(id => document.getElementById(id).classList.add('hidden'));
+        }
+
+        // Dashboard functions
+        function updateAccountInfo() {
+            if (!currentUser) return;
+            
+            const limits = getPlanLimits(currentUser.plan);
+            
+            document.getElementById('account-info').innerHTML = `
+                <p><strong>Piano:</strong> ${currentUser.plan.toUpperCase()}</p>
+                <p><strong>Email:</strong> ${currentUser.email}</p>
+            `;
+            
+            const messagePercent = currentUser.plan === 'premium' ? 0 : (currentUser.usage.messages / limits.messages) * 100;
+            const imagePercent = currentUser.plan === 'premium' ? 0 : (currentUser.usage.images / limits.images) * 100;
+            
+            document.getElementById('usage-stats').innerHTML = `
+                <h4>Utilizzo</h4>
+                <p>Messaggi al mese: ${currentUser.usage.messages}/${currentUser.plan === 'premium' ? '∞' : limits.messages}</p>
+                <div class="usage-bar"><div class="usage-fill" style="width: ${Math.min(messagePercent, 100)}%"></div></div>
+                <p>Immagini al giorno: ${currentUser.usage.images}/${currentUser.plan === 'premium' ? '∞' : limits.images}</p>
+                <div class="usage-bar"><div class="usage-fill" style="width: ${Math.min(imagePercent, 100)}%"></div></div>
+            `;
+        }
+
+        function getPlanLimits(plan) {
+            const limits = {
+                free: { messages: 100, images: 3 },
+                basic: { messages: 5000, images: 10 },
+                premium: { messages: Infinity, images: Infinity }
+            };
+            return limits[plan] || limits.free;
+        }
+
+        async function upgradePlan(plan) {
+            if (confirm(`Confermi l'upgrade al piano ${plan.toUpperCase()}?`)) {
+                try {
+                    const result = await apiCall('upgradePlan', { plan });
+                    
+                    if (result.success) {
+                        currentUser.plan = plan;
+                        showAlert(`Piano aggiornato a ${plan.toUpperCase()}!`, 'success');
+                        updateAccountInfo();
+                    } else {
+                        showAlert(result.message || 'Errore durante upgrade', 'error');
+                    }
+                } catch (error) {
+                    showAlert('Errore durante upgrade', 'error');
+                }
+            }
+        }
+
+        // Bot management functions
+        async function loadBots() {
+            try {
+                const result = await apiCall('getBots');
+                
+                if (result.success) {
+                    currentUser.bots = result.bots;
+                    const botsList = document.getElementById('bots-list');
+                    
+                    if (result.bots.length === 0) {
+                        botsList.innerHTML = '<p>Nessun bot creato ancora.</p>';
+                        return;
+                    }
+                    
+                    botsList.innerHTML = result.bots.map(bot => `
+                        <div class="card" style="border-left: 1px solid black; margin-top: 12px;">
+                            <h3>${bot.name}</h3>
+                            <p style="margin: 8px 2px;"><strong>Personalità:</strong> ${bot.personality.substring(0, 120)}...</p>
+                            <p style="margin: 8px 2px;"><strong>Modello:</strong> ${bot.model}</p>
+                            <button class="btn" onclick="openChat('${bot.id}')">Chatta</button>
+                            <button class="btn danger" onclick="deleteBot('${bot.id}')">Elimina</button>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                showAlert('Errore nel caricamento bot', 'error');
+            }
+        }
+
+        function showCreateBot() {
+            document.getElementById('create-bot-form').classList.remove('hidden');
+        }
+
+        function hideCreateBot() {
+            document.getElementById('create-bot-form').classList.add('hidden');
+        }
+
+        async function createBot() {
+            const name = document.getElementById('bot-name').value;
+            const personality = document.getElementById('bot-personality').value;
+            const model = document.getElementById('bot-model').value;
+            
+            if (!name || !personality) {
+                showAlert('Compila tutti i campi', 'error');
+                return;
+            }
+            
+            try {
+                const result = await apiCall('createBot', { name, personality, model });
+                
+                if (result.success) {
+                    hideCreateBot();
+                    loadBots();
+                    showAlert('Bot creato con successo!', 'success');
+                    
+                    // Clear form
+                    document.getElementById('bot-name').value = '';
+                    document.getElementById('bot-personality').value = '';
+                } else {
+                    showAlert(result.message || 'Errore nella creazione bot', 'error');
+                }
+            } catch (error) {
+                showAlert('Errore nella creazione bot', 'error');
+            }
+        }
+
+        async function deleteBot(botId) {
+            if (confirm('Sei sicuro di voler eliminare questo bot?')) {
+                try {
+                    const result = await apiCall('deleteBot', { botId });
+                    
+                    if (result.success) {
+                        loadBots();
+                        showAlert('Bot eliminato', 'success');
+                    } else {
+                        showAlert(result.message || 'Errore eliminazione bot', 'error');
+                    }
+                } catch (error) {
+                    showAlert('Errore eliminazione bot', 'error');
+                }
+            }
+        }
+
+        // Chat functions
+        async function openChat(botId) {
+            try {
+                    
+                const result = await apiCall('getBot', { botId });
+                
+                if (result.success) {
+                    currentBot = result.bot;
+                    document.getElementById('chat-bot-name').textContent = currentBot.name;
+                    document.getElementById('chat-interface').classList.remove('hidden');
+                    loadChatHistory();
+                } else {
+                    showAlert('Errore apertura chat', 'error');
+                }
+            } catch (error) {
+                showAlert('Errore apertura chat', 'error');
+            }
+        }
+
+        function closeChatInterface() {
+            document.getElementById('chat-interface').classList.add('hidden');
+            currentBot = null;
+            chatHistory = [];
+        }
+
+        function loadChatHistory() {
+            const chatMessages = document.getElementById('chat-messages');
+            chatHistory = currentBot.conversations || [];
+            
+            chatMessages.innerHTML = chatHistory.map(msg => `
+                <div class="message ${msg.role}">
+                    <strong>${msg.role === 'user' ? 'Tu' : currentBot.name}:</strong>
+                    ${msg.content}
+                    ${msg.image ? `<img src="${msg.image}" class="image-preview" alt="Generated image">` : ''}
+                </div>
+            `).join('');
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function handleChatKeypress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+async function sendMessage() {
+const input = document.getElementById('chat-input');
+const message = input.value.trim();
+if (!message) return;
+
+if (!canSendMessage()) {
+showAlert('Limite messaggi raggiunto per il tuo piano', 'error');
+return;
+}
+
+input.value = '';
+chatHistory.push({ role: 'user', content: message });
+updateChatDisplay();
+
+try {
+const result = await apiCall('sendMessage', {
+botId: currentBot.id,
+message: message,
+history: chatHistory
+});
+
+if (result.success) {
+// aggiorna la conversazione salvata dal server
+currentBot.conversations = result.conversation || [];
+chatHistory = currentBot.conversations;
+updateChatDisplay();
+
+if (result.usage) currentUser.usage = result.usage;
+updateUsageDisplay();
+
+// 👇 Avviso saturazione chat (solo premium)
+if (result.nearLimit && currentUser.plan === 'premium') {
+showHistoryWarning();
+} else {
+hideHistoryWarning();
+}
+} else {
+showAlert(result.message || 'Errore nella risposta del bot', 'error');
+}
+} catch (error) {
+showAlert('Errore nella risposta del bot', 'error');
+}
+} // ← chiusura corretta di sendMessage()
+
+        function showHistoryWarning() {
+const warn = document.getElementById('history-warning');
+if (warn) {
+warn.style.display = 'block';
+warn.style.color = 'orange';
+warn.innerHTML = `
+⚠️ La chat è quasi piena.
+<a href="#" onclick="downloadChatHistory()">Scarica la cronologia completa</a>
+prima che una parte venga rimossa.
+`;
+}
+}
+
+function hideHistoryWarning() {
+const warn = document.getElementById('history-warning');
+if (warn) {
+warn.innerHTML = ''; // svuota il testo
+warn.style.display = 'none'; // giusto per nasconderlo visivamente
+}
+}
+                
+        function downloadChatHistory() {
+        const data = JSON.stringify(chatHistory, null, 2);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chat_history_${currentBot.name || 'bot'}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        }                
+
+        async function generateImage() {
+            const prompt = document.getElementById('chat-input').value.trim() || 'A beautiful landscape';
+            const chatMessages = document.getElementById('chat-messages');    
+            chatMessages.innerHTML = "<i>Sto generando...</i>";
+            if (!canGenerateImage()) {
+                showAlert('Limite immagini raggiunto per il tuo piano', 'error');
+                return;
+            }
+            
+            document.getElementById('chat-input').value = '';
+            
+            try {
+                const result = await apiCall('generateImage', {
+                    botId: currentBot.id,
+                    prompt: prompt
+                });
+                
+                if (result.success) {
+                chatHistory.push({
+                role: 'assistant',
+                content: `Immagine generata per: "${prompt}"`,
+                image: result.imageUrl
+                });
+                updateChatDisplay();
+
+                if (result.usage) currentUser.usage = result.usage;
+                updateUsageDisplay();
+                } else {
+                    showAlert(result.message || 'Errore nella generazione immagine', 'error');
+                }
+            } catch (error) {
+                showAlert('Errore nella generazione immagine', 'error');
+            }
+        }
+
+        function updateChatDisplay() {
+            loadChatHistory();
+        }
+
+        // Usage checking functions
+        function canSendMessage() {
+            const limits = getPlanLimits(currentUser.plan);
+            return currentUser.plan === 'premium' || currentUser.usage.messages < limits.messages;
+        }
+
+        function canGenerateImage() {
+            const limits = getPlanLimits(currentUser.plan);
+            return currentUser.plan === 'premium' || currentUser.usage.images < limits.images;
+        }
+
+        // Utility functions
+        function showAlert(message, type = 'error') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type}`;
+            alertDiv.textContent = message;
+            
+            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+            // Settings open functions
+            function showSettings() {
+hideAllSections();
+document.getElementById('settings-section').classList.remove('hidden');
+
+leggiApiKey();                    
+                    
+}
+            
+async function leggiApiKey() {
+const keyField = document.getElementById('openai-key');
+// email o id dell’utente corrente (puoi modificarlo o leggerlo da localStorage)
+const currentEmail = currentUser.email;
+
+try {
+const response = await fetch('./data/users.json');
+if (!response.ok) {
+throw new Error(`Errore HTTP: ${response.status}`);
+}
+
+const data = await response.json();
+
+// trova l’utente corrispondente
+const utente = data.find(u => u.email === currentEmail);
+if (!utente) {
+throw new Error(`Utente con email "${currentEmail}" non trovato.`);
+}
+
+const key = utente.settings?.openaiKey;
+if (!key) {
+throw new Error('Proprietà "settings.openaiKey" non trovata nel file JSON.');
+}
+
+// Assegna la chiave letta all’input
+keyField.value = key;
+} catch (err) {
+console.error('Errore durante la lettura del file:', err.message);
+keyField.value = ''; // cancella o lascia vuoto in caso d’errore
+}
+}       
+
+function updateUsageDisplay() {
+const limits = getPlanLimits(currentUser.plan);
+
+const remainingMessages =
+currentUser.plan === 'premium'
+? '∞'
+: `${limits.messages - currentUser.usage.messages}/${limits.messages}`;
+
+const remainingImages =
+currentUser.plan === 'premium'
+? '∞'
+: `${limits.images - currentUser.usage.images}/${limits.images}`;
+
+document.getElementById('msg-remaining').textContent =
+`Messaggi mensili rimanenti: ${remainingMessages}`;
+
+document.getElementById('img-remaining').textContent =
+`Immagini giornaliere rimanenti: ${remainingImages}`;
+}
+            
+            
+        
+    </script>
+</body>
+</html>
