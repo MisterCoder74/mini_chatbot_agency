@@ -328,13 +328,13 @@ font-size: 0.85rem;
                             <h4>Basic</h4>
                             <p>5000 messaggi/mese<br>10 immagini/giorno<br>memoria di contesto (50 messaggi)<br>salvataggio chats</p>
                             <p><strong>€9.99/mese</strong></p>
-                            <button class="btn" onclick="upgradePlan('basic')">Upgrade</button>
+                            <button class="btn" onclick="upgradePlan('basic')">Aggiorna Piano</button>
                         </div>
                         <div class="plan-card card premium">
                             <h4>Premium</h4>
                             <p>Messaggi illimitati<br>Immagini illimitate<br>memoria di contesto (100 messaggi)<br>esportazione memoria<br>salvataggio chats</p>
                             <p><strong>€19.99/mese</strong></p>
-                            <button class="btn" onclick="upgradePlan('premium')">Upgrade</button>
+                            <button class="btn" onclick="upgradePlan('premium')">Aggiorna Piano</button>
                         </div>
                     </div>
                 </div>
@@ -422,6 +422,26 @@ onkeypress="handleChatKeypress(event)">
             <button class="btn" onclick="saveSettings()">Salva</button>
         </div>
     </div>
+
+    <!-- Payment Modal -->
+    <div id="payment-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;">
+        <div class="card" style="max-width: 500px; width: 90%;">
+            <h3 id="payment-modal-title">Upgrade Piano</h3>
+            <p id="payment-modal-price"></p>
+            <div style="margin: 1.5rem 0;">
+                <button class="btn" onclick="initiateStripePayment()" style="width: 100%; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    💳 Paga con Stripe
+                </button>
+                <button class="btn secondary" onclick="initiatePayPalPayment()" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    🅿️ Paga con PayPal
+                </button>
+            </div>
+            <button class="btn secondary" onclick="closePaymentModal()">Annulla</button>
+        </div>
+    </div>
+
+    <!-- PayPal Form Container (hidden, used for form submission) -->
+    <div id="paypal-form-container" style="display: none;"></div>
 
     <script>
         // Global variables
@@ -651,19 +671,122 @@ showAlert('Errore durante la registrazione', 'error');
             return limits[plan] || limits['free'];
         }
 
+        // Payment functions
+        let selectedPlan = null;
+        let selectedPaymentMethod = null;
+
         async function upgradePlan(plan) {
+            // Check if user already has this plan or higher
+            if (currentUser.plan === 'premium' || (currentUser.plan === 'basic' && plan === 'basic')) {
+                showAlert('Hai già questo piano o un piano superiore!', 'error');
+                return;
+            }
+            
+            selectedPlan = plan;
+            showPaymentModal(plan);
+        }
+
+        function showPaymentModal(plan) {
+            const modal = document.getElementById('payment-modal');
+            const title = document.getElementById('payment-modal-title');
+            const price = document.getElementById('payment-modal-price');
+            
+            const prices = {
+                'basic': '€9.99/mese',
+                'premium': '€19.99/mese'
+            };
+            
+            const planNames = {
+                'basic': 'Basic',
+                'premium': 'Premium'
+            };
+            
+            title.textContent = `Upgrade a ${planNames[plan]}`;
+            price.textContent = prices[plan];
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex';
+        }
+
+        function closePaymentModal() {
+            const modal = document.getElementById('payment-modal');
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+            selectedPlan = null;
+            selectedPaymentMethod = null;
+        }
+
+        async function initiateStripePayment() {
+            if (!selectedPlan) {
+                showAlert('Seleziona un piano prima di procedere', 'error');
+                return;
+            }
+            
             try {
-                const result = await apiCall('upgradePlan', { plan });
+                const result = await apiCall('initiatePayment', {
+                    plan: selectedPlan,
+                    paymentMethod: 'stripe'
+                });
                 
-                if (result.success) {
-                    currentUser.plan = plan;
-                    showDashboard();
-                    showAlert('Piano aggiornato con successo!', 'success');
+                if (result.success && result.paymentUrl) {
+                    showAlert('Reindirizzamento a Stripe...', 'success');
+                    setTimeout(() => {
+                        window.location.href = result.paymentUrl;
+                    }, 1000);
                 } else {
-                    showAlert(result.message || 'Errore durante l\'upgrade', 'error');
+                    showAlert(result.message || 'Errore nell\'inizializzazione del pagamento', 'error');
                 }
             } catch (error) {
-                showAlert('Errore durante l\'upgrade', 'error');
+                showAlert('Errore durante l\'inizializzazione del pagamento', 'error');
+            }
+        }
+
+        async function initiatePayPalPayment() {
+            if (!selectedPlan) {
+                showAlert('Seleziona un piano prima di procedere', 'error');
+                return;
+            }
+            
+            try {
+                const result = await apiCall('initiatePayment', {
+                    plan: selectedPlan,
+                    paymentMethod: 'paypal'
+                });
+                
+                if (result.success && result.paypalForm) {
+                    // Create and submit PayPal form
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = 'https://www.paypal.com/cgi-bin/webscr';
+                    
+                    const fields = {
+                        'cmd': '_xclick',
+                        'business': result.paypalForm.business,
+                        'item_name': result.paypalForm.itemName,
+                        'amount': result.paypalForm.amount,
+                        'currency_code': result.paypalForm.currency,
+                        'custom': result.paypalForm.custom,
+                        'return': result.paypalForm.returnUrl,
+                        'cancel_return': result.paypalForm.cancelUrl
+                    };
+                    
+                    for (const [key, value] of Object.entries(fields)) {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = value;
+                        form.appendChild(input);
+                    }
+                    
+                    document.getElementById('paypal-form-container').appendChild(form);
+                    showAlert('Reindirizzamento a PayPal...', 'success');
+                    setTimeout(() => {
+                        form.submit();
+                    }, 1000);
+                } else {
+                    showAlert(result.message || 'Errore nell\'inizializzazione del pagamento', 'error');
+                }
+            } catch (error) {
+                showAlert('Errore durante l\'inizializzazione del pagamento', 'error');
             }
         }
 
