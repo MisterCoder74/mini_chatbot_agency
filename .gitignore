@@ -2,6 +2,8 @@
 *.log
 error.log
 
+# Payment configuration (contains sensitive keys)
+config/payments.php
 # Editor/IDE
 .vscode/
 .idea/

@@ -536,12 +536,19 @@ $newUser = [
 'password' => $password,
 'plan' => 'free',
 'usage' => [
-'messages' => 0,
-'images' => 0,
-'lastReset' => date('Y-m-d')
+    'messages' => 0,
+    'images' => 0,
+    'lastReset' => date('Y-m-d')
 ],
 'bots' => [],
 'settings' => [],
+'subscription' => [
+    'status' => 'active',
+    'plan' => 'free',
+    'nextBillingDate' => null,
+    'lastPaymentDate' => null,
+    'paymentMethod' => 'none'
+],
 'status' => 'pending',
 'otp' => (string)$otp,
 'otp_expiry' => $expiry
@@ -710,6 +717,98 @@ break;
         echo json_encode(['success' => true]);
         break;
 
+    case 'initiatePayment':
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'message' => 'Non autenticato']);
+            break;
+        }
+        
+        $plan = sanitizeInput($input['plan'] ?? '');
+        $paymentMethod = sanitizeInput($input['paymentMethod'] ?? '');
+        $allowedPlans = ['basic', 'premium'];
+        $allowedMethods = ['stripe', 'paypal'];
+        
+        if (!in_array($plan, $allowedPlans)) {
+            echo json_encode(['success' => false, 'message' => 'Piano non valido']);
+            break;
+        }
+        
+        if (!in_array($paymentMethod, $allowedMethods)) {
+            echo json_encode(['success' => false, 'message' => 'Metodo di pagamento non valido']);
+            break;
+        }
+        
+        $user = findUserById($_SESSION['user_id']);
+        if (!$user) {
+            echo json_encode(['success' => false, 'message' => 'Utente non trovato']);
+            break;
+        }
+        
+        // Define prices
+        $prices = [
+            'basic' => 9.99,
+            'premium' => 19.99
+        ];
+        
+        $price = $prices[$plan];
+        
+        // Generate payment details based on method
+        if ($paymentMethod === 'stripe') {
+            // Stripe checkout URL generation
+            // TODO: Configure real Stripe keys from environment
+            $checkoutUrl = 'https://checkout.stripe.com/c/pay/';
+            $checkoutSessionId = generateId();
+            
+            $stripeUrl = $checkoutUrl . $checkoutSessionId . '?client_reference_id=' . urlencode($user['id'] . '|' . $plan);
+            
+            // Store pending payment
+            $user['subscription'] = [
+                'status' => 'pending_payment',
+                'plan' => $plan,
+                'nextBillingDate' => null,
+                'lastPaymentDate' => null,
+                'paymentMethod' => 'stripe',
+                'pendingSessionId' => $checkoutSessionId
+            ];
+            updateUser($user);
+            
+            echo json_encode([
+                'success' => true,
+                'paymentUrl' => $stripeUrl,
+                'sessionId' => $checkoutSessionId
+            ]);
+            
+        } else if ($paymentMethod === 'paypal') {
+            // PayPal form generation
+            $paypalFormId = generateId();
+            
+            // Store pending payment
+            $user['subscription'] = [
+                'status' => 'pending_payment',
+                'plan' => $plan,
+                'nextBillingDate' => null,
+                'lastPaymentDate' => null,
+                'paymentMethod' => 'paypal',
+                'pendingPaymentId' => $paypalFormId
+            ];
+            updateUser($user);
+            
+            echo json_encode([
+                'success' => true,
+                'paypalForm' => [
+                    'business' => 'merchant@example.com',
+                    'amount' => $price,
+                    'currency' => 'EUR',
+                    'itemName' => ucfirst($plan) . ' Plan',
+                    'custom' => $user['id'] . '|' . $plan,
+                    'returnUrl' => 'paypalCallback.php?status=success&paymentId=' . $paypalFormId,
+                    'cancelUrl' => 'index.html'
+                ],
+                'paymentId' => $paypalFormId
+            ]);
+        }
+        break;
+
     case 'upgradePlan':
         if (!isset($_SESSION['user_id'])) {
             echo json_encode(['success' => false, 'message' => 'Non autenticato']);
@@ -731,6 +830,13 @@ break;
         }
         
         $user['plan'] = $plan;
+        $user['subscription'] = [
+            'status' => 'active',
+            'plan' => $plan,
+            'nextBillingDate' => date('Y-m-d', strtotime('+1 month')),
+            'lastPaymentDate' => date('Y-m-d'),
+            'paymentMethod' => 'none'
+        ];
         updateUser($user);
         
         echo json_encode(['success' => true, 'message' => 'Piano aggiornato']);
